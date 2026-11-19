@@ -1,0 +1,7 @@
+[
+    {
+        "name": "rapidreset",
+        "command": "node rapidreset.js GET <<host>> <<time>> 1 64 proxi.txt",
+        "description": "CVE-2023-1234."
+    }
+]

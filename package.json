@@ -1,0 +1,14 @@
+{
+  "name": "rapidreset-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HTTP/2 rapid reset orchestration API with remote workers",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "client": "node bot/client.js"
+  },
+  "dependencies": {
+    "hpack": "^1.0.0"
+  }
+}
