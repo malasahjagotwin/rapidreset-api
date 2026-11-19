@@ -126,7 +126,7 @@ if (currentDate > targetDate) {
 }
 
 if (url.hostname.endsWith(blockedDomain)) {
-    console.log(`[#2] This target in blacklisted ${blockedDomain} if this mistake pm @rapidreset`);
+    console.log(`[#2] Blocked target: ${blockedDomain.join(', ')} is on the blacklist`);
     process.exit(1);
 }
 
@@ -382,11 +382,11 @@ function checkLicense(license) {
         });
     });
     request.on('timeout', function () {
-        console.log('[#8] Whoops something went wrong pm @rapidreset');
+        console.log('[#8] License check timed out');
         process.exit(1);
     });
     request.on('error', error => {
-        console.log('[#9] Whoops something went wrong pm @rapidreset');
+        console.log('[#9] License check failed');
         process.exit(1);
     });
     request.end();
@@ -826,7 +826,7 @@ async function go() {
     });
 }
 
-if (cluster.isMaster) {
+function runMaster() {
     const workers = {};
 
     Array.from({ length: threads }, (_, i) => cluster.fork({ core: i % os.cpus().length }))
@@ -903,8 +903,10 @@ if (cluster.isMaster) {
     }
 
     setTimeout(() => process.exit(1), time * 1000);
-    setTimeout(() => exit(), time * 1000);
-} else {
+    setTimeout(() => process.exit(1), time * 1000);
+}
+
+function runWorker() {
     let conns = 0;
 
     let i = setInterval(() => {
@@ -929,7 +931,7 @@ if (cluster.isMaster) {
     }
 
     setTimeout(() => process.exit(1), time * 1000);
-    setTimeout(() => exit(), time * 1000);
+    setTimeout(() => process.exit(1), time * 1000);
 
     process.on('SIGINT', cleanupAndExit);
     process.on('SIGTERM', cleanupAndExit);
@@ -939,4 +941,10 @@ if (cluster.isMaster) {
         clearInterval(i);
         process.exit();
     }
+}
+
+if (cluster.isMaster) {
+    runMaster();
+} else {
+    runWorker();
 }
