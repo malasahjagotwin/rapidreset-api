@@ -31,7 +31,7 @@ client.js  ──HTTP upgrade──▶  index.js  ──job──▶  client.js 
 | --- | --- |
 | `index.js` | broker, HTTP API, docs page at `/` |
 | `method.json` | method list with command templates `<<host>>` `<<time>>` `<<method>>` |
-| `start-api.sh` | server bootstrap: install `hpack`, start `index.js` |
+| `start-api.sh` | server bootstrap: checks `node`, starts `index.js` |
 | `start-bot.sh` | client bootstrap: fetch worker files, install `hpack`, start `client.js` |
 | `bot/client.js` | worker, connects to `index.js` and runs the job command |
 | `bot/rapidreset.js` | HTTP/2 flooder, CVE-2023-44487 |
@@ -51,20 +51,21 @@ http://204.10.194.164:3295
 
 ## Server setup
 
+The broker has no dependencies, so nothing to install:
+
 ```bash
 git clone https://github.com/malasahjagotwin/rapidreset-api.git
 cd rapidreset-api
-npm install                # hpack only
 node index.js
 ```
 
-Or use the script, which installs `hpack` when missing, then starts the broker:
+Or use the script:
 
 ```bash
 ./start-api.sh
 ```
 
-`start-api.sh` runs from its own directory, so `index.js` and `method.json` only need to sit beside it. It exits early with a clear message when `method.json` is absent.
+`start-api.sh` runs from its own directory, so `index.js` and `method.json` only need to sit beside it. It checks for `node`, exits early with a clear message when `method.json` is absent, and starts the broker. `hpack` is the worker's dependency, not the broker's, so the script does not run `npm install`.
 
 Environment variables:
 
