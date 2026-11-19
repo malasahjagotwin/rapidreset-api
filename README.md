@@ -87,6 +87,7 @@ the broker. It needs `node` and `curl` only.
 | `HOST` | `0.0.0.0` | listening interface |
 | `CLIENT_TOKEN` | empty | worker authentication; empty means any worker may connect |
 | `API_TOKEN` | empty | protects `/api/attack`, `/api/stop`, `/api/attack/:id`, `/api/workers` |
+| `MAX_ATTACK_TIME` | `86400` | maximum accepted `time` in seconds (1–2,000,000) |
 | `LOG_LEVEL` | `info` | `silent`, `error`, `warn`, `info`, `debug` |
 | `LOG_FORMAT` | auto | `pretty` on a TTY, `json` otherwise |
 | `METHODS_FILE` | `./method.json` | alternate method file |
@@ -139,7 +140,7 @@ POST /api/attack        (JSON body: {"host":"...","time":30,"method":"..."})
 | Parameter | Required | Description |
 | --- | --- | --- |
 | `host` | yes | target URL, `http(s)://`, no whitespace, max 2048 chars |
-| `time` | yes | duration in seconds, `1`–`300` (legacy alias: `itme`) |
+| `time` | yes | duration in seconds, `1`–`86400` by default (`MAX_ATTACK_TIME`); legacy alias `itme` |
 | `method` | yes | a name from `method.json` |
 
 ```bash
@@ -227,7 +228,7 @@ them entirely unless `ALLOW_LEGACY_SHELL=1`.
 
 ## Timeouts and limits
 
-- Duration accepted: 1–300 seconds.
+- Duration accepted: 1–86400 seconds by default; override with `MAX_ATTACK_TIME`.
 - Per-job watchdog: `max(60s, time + 30s)`. The broker sends a cancel if a worker does
   not report in time, and the worker kills the child tree after `time + 8s`.
 - Queue: 32 waiting jobs when no worker has a free slot; further submissions get `503`
