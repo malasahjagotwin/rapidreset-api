@@ -31,7 +31,8 @@ client.js  ──HTTP upgrade──▶  index.js  ──job──▶  client.js 
 | --- | --- |
 | `index.js` | broker, HTTP API, docs page at `/` |
 | `method.json` | method list with command templates `<<host>>` `<<time>>` `<<method>>` |
-| `start.sh` | client bootstrap: fetch worker files, install `hpack`, start `client.js` |
+| `start-api.sh` | server bootstrap: install `hpack`, start `index.js` |
+| `start-bot.sh` | client bootstrap: fetch worker files, install `hpack`, start `client.js` |
 | `bot/client.js` | worker, connects to `index.js` and runs the job command |
 | `bot/rapidreset.js` | HTTP/2 flooder, CVE-2023-44487 |
 | `bot/proxi.txt` | proxy list, one entry per line |
@@ -57,6 +58,14 @@ npm install                # hpack only
 node index.js
 ```
 
+Or use the script, which installs `hpack` when missing, then starts the broker:
+
+```bash
+./start-api.sh
+```
+
+`start-api.sh` runs from its own directory, so `index.js` and `method.json` only need to sit beside it. It exits early with a clear message when `method.json` is absent.
+
 Environment variables:
 
 | Name | Default | Purpose |
@@ -64,6 +73,8 @@ Environment variables:
 | `PORT` | `SERVER_PORT`, then `3295` | listening port |
 | `HOST` | `0.0.0.0` | listening interface |
 | `CLIENT_TOKEN` | empty | when set, workers must send the same header |
+
+On a panel that injects its own port, leave `PORT` unset. Both the script and `index.js` fall back to `SERVER_PORT`.
 
 ## Client setup
 
@@ -81,15 +92,15 @@ mkdir -p bot && cd bot \
 Or use the script, which does the same with dependency checks:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/start.sh
-chmod +x start.sh
-./start.sh
+curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/start-bot.sh
+chmod +x start-bot.sh
+./start-bot.sh
 ```
 
-`start.sh` takes an optional target directory as its first argument (default `bot`) and reads the same environment variables. When the variable is unset, `CLIENT_TOKEN` defaults to empty, which matches a server without a token.
+`start-bot.sh` takes an optional target directory as its first argument (default `bot`), downloads the three worker files, installs `hpack` only when it is missing, then runs `client.js`. It reads the same environment variables, with `CLIENT_TOKEN` defaulting to empty so it matches a server without a token.
 
 ```bash
-ORCHESTRATOR=http://10.0.0.5:3295 MAX_CONCURRENT=2 WORKER_NAME=node-01 ./start.sh worker-a
+ORCHESTRATOR=http://10.0.0.5:3295 MAX_CONCURRENT=2 WORKER_NAME=node-01 ./start-bot.sh worker-a
 ```
 
 With a token:

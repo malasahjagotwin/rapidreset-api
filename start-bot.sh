@@ -21,8 +21,12 @@ curl -fsSLO "$REPO/bot/client.js"
 curl -fsSLO "$REPO/bot/rapidreset.js"
 curl -fsSLO "$REPO/bot/proxi.txt"
 
-echo "installing hpack"
-npm i hpack --no-audit --no-fund
+if [ -d node_modules/hpack ]; then
+  echo "hpack already installed"
+else
+  echo "installing hpack"
+  npm i hpack --no-audit --no-fund
+fi
 
 echo "starting worker against $ORCHESTRATOR"
 ORCHESTRATOR="$ORCHESTRATOR" \

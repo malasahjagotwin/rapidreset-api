@@ -214,11 +214,38 @@ function pickIdleWorker(excludeWorkerId) {
     return null;
 }
 
+function pickWaiter() {
+    return waiters.values().next().value || null;
+}
+
+function publicJob(job) {
+    return {
+        id: job.id,
+        name: job.name,
+        target: job.target,
+        time: job.time,
+        command: job.command,
+    };
+}
+
 function dispatch() {
     while (pending.length > 0) {
         const worker = pickIdleWorker();
+
         if (!worker) {
-            return;
+            // Worker yang hanya punya kanal signal (Upgrade diblokir proxy) tetap
+            // bisa mengambil job lewat kanal itu.
+            const waiter = pickWaiter();
+            if (!waiter) {
+                return;
+            }
+
+            const job = pending.shift();
+            job.workerId = waiter.id;
+            job.timer = setTimeout(() => failJob(job, `Worker ${waiter.id} did not finish the job in time`), jobTimeoutMs);
+            log(paint.blue('job'), `${paint.dim(job.id.slice(0, 8))} -> ${waiter.id} (signal)  ${paint.pg(job.name)} ${job.target} ${job.time}s`);
+            waiter.send({ type: 'job', job: publicJob(job) });
+            continue;
         }
 
         const job = pending.shift();
@@ -229,6 +256,7 @@ function dispatch() {
             paint.blue('job'),
             `${paint.dim(job.id.slice(0, 8))} ${paint.gy('->')} ${worker.id}  ${paint.pg(job.name)} ${job.target} ${job.time}s`,
         );
+        worker.send({ type: 'job', job: publicJob(job) });
     }
 }
 
@@ -319,6 +347,14 @@ function removeWorker(workerId) {
     if (worker.currentJobId) {
         const job = jobs.get(worker.currentJobId);
         if (job) {
+            failJob(job, 'Worker disconnected before finishing the job');
+        }
+    }
+
+    // Job yang jatuh ke kanal signal tidak punya currentJobId, jadi harus
+    // di-fail lewat job yang masih menunjuk worker ini.
+    for (const job of jobs.values()) {
+        if (job.workerId === workerId) {
             failJob(job, 'Worker disconnected before finishing the job');
         }
     }
@@ -477,10 +513,12 @@ async function handleAttack(request, response, searchParams) {
     pending.push(job);
     dispatch();
 
+    const assigned = job.workerId !== null;
     sendJson(response, 202, {
         ok: true,
         id: job.id,
-        status: 'queued',
+        status: assigned ? 'dispatched' : 'queued',
+        worker: job.workerId,
         method: job.name,
         host: job.target,
         time: job.time,
