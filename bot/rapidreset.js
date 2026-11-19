@@ -394,9 +394,14 @@ function checkLicense(license) {
 
 const generatedFP = generateSpoofedFingerprint()
 
+// User-Agent default Firefox; --ua tetap menimpa nilai ini.
+function firefoxUserAgent(version) {
+    return `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${version}.0) Gecko/20100101 Firefox/${version}.0`;
+}
+
 function buildRequest() {
     const browserVersion = getRandomInt(138, 143);
-    var userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browserVersion}.0.0.0 Safari/537.36`;
+    const userAgent = customuavalue || firefoxUserAgent(browserVersion);
     const fwfw = ['Google Chrome', 'Brave'];
     const wfwf = fwfw[Math.floor(Math.random() * fwfw.length)];
 
@@ -410,12 +415,6 @@ function buildRequest() {
     }
     else {
         brandValue = `"Chromium";v="${browserVersion}", "${brandGrease}";v="99", "${wfwf}";v="${browserVersion}"`;
-    }
-
-    if (customuavalue) {
-        userAgent = customuavalue;
-    } else {
-        userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browserVersion}.0.0.0 Safari/537.36`;
     }
 
     const isBrave = wfwf === 'Brave';
@@ -684,7 +683,7 @@ async function go() {
 
                     async function sendRequest() {
                         const browserVersion = getRandomInt(138, 143);
-                        let userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browserVersion}.0.0.0 Safari/537.36`;
+                        const userAgent = customuavalue || firefoxUserAgent(browserVersion);
                         const fwfw = ['Google Chrome', 'Brave'];
                         const wfwf = fwfw[Math.floor(Math.random() * fwfw.length)];
                         const ref = ["same-site", "same-origin", "cross-site"];
@@ -700,10 +699,6 @@ async function go() {
                             brandValue = `"${wfwf}";v="${browserVersion}", "${brandGrease}";v="24", "Chromium";v="${browserVersion}"`;
                         } else {
                             brandValue = `"Chromium";v="${browserVersion}", "${brandGrease}";v="99", "${wfwf}";v="${browserVersion}"`;
-                        }
-
-                        if (customuavalue) {
-                            userAgent = customuavalue;
                         }
 
                         const isBrave = wfwf === 'Brave';
