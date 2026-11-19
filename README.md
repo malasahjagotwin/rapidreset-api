@@ -11,6 +11,8 @@
 
 `CVE-2023-44487` · `CWE-400` · CVSS `7.5` HIGH
 
+Telegram: [@fasthttps](https://t.me/fasthttps)
+
 [API](#api) · [Server setup](#server-setup) · [Client setup](#client-setup) · [CVE](#cve-2023-44487)
 
 </div>

