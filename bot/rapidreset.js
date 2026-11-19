@@ -20,7 +20,8 @@ process.on('unhandledRejection', (error) => {
     console.error('[rejection]', error);
 });
 
-const VERSION = '2.5';
+const VERSION = '2.6';
+const BUILD = '2026.11';
 const EXPIRY_DATE = new Date('2077-10-25');
 const BLOCKED_DOMAINS = ['.gov', '.edu', '.by', '.ua'];
 
@@ -77,7 +78,7 @@ const debugMode = process.argv.includes('--debug') && forceHttp != 1;
 if (!reqmethod || !target || !time || !threads || !ratelimit || !proxyfile) {
     console.clear();
     console.error(`
-    rapidreset ${VERSION} · CVE-2023-44487
+    rapidreset ${VERSION} · CVE-2023-44487 · build ${BUILD}
     Telegram: @fasthttps
 
     Usage:
@@ -791,7 +792,7 @@ function runMaster() {
 
     Array.from({ length: threads }, (_, i) => cluster.fork({ core: i % os.cpus().length }))
     console.log(`
-  rapidreset ${VERSION} · CVE-2023-44487
+  rapidreset ${VERSION} · CVE-2023-44487 · build ${BUILD}
   Telegram: @fasthttps
   ──────────────────────────────────────────
   method     ${reqmethod}
