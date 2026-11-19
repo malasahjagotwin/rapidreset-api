@@ -14,6 +14,7 @@ const logLimit = 4000;
 
 const workerId = `${workerName}-${process.pid}`;
 const running = new Map();
+const cancelled = new Set();
 
 let shuttingDown = false;
 let controlSocket = null;
@@ -23,6 +24,21 @@ const pendingSignalMessages = [];
 
 function log(...args) {
     console.log(`[${new Date().toISOString().slice(11, 19)}] ${args.join(' ')}`);
+}
+
+// Shell wrapper (shell: true) berarti SIGTERM ke anak langsung hanya membunuh sh,
+// bukan node rapidreset.js di bawahnya. Di Linux kita bunuh seluruh group.
+function killTree(child) {
+    if (process.platform === 'win32') {
+        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true }).on('error', () => {});
+        return;
+    }
+
+    try {
+        process.kill(-child.pid, 'SIGTERM');
+    } catch {
+        child.kill('SIGTERM');
+    }
 }
 
 function authHeaders(extra = {}) {
@@ -171,6 +187,27 @@ function handleControlMessage(message) {
         }
         return;
     }
+
+    if (message.type === 'cancel') {
+        const child = running.get(message.id);
+
+        if (!child) {
+            sendSignal({ type: 'result', id: message.id, exitCode: 1, cancelled: true, output: 'not running' });
+            return;
+        }
+
+        cancelled.add(message.id);
+        log(`job ${message.id.slice(0, 8)}  stop requested`);
+        killTree(child);
+
+        // Kalau SIGTERM tidak cukup, paksa setelah 5 detik.
+        setTimeout(() => {
+            if (running.has(message.id)) {
+                killTree(child);
+            }
+        }, 5000).unref();
+        return;
+    }
 }
 
 let activeJobsSeen = 0;
@@ -193,6 +230,7 @@ function runJob(job) {
         cwd: workdir,
         shell: true,
         windowsHide: true,
+        detached: process.platform !== 'win32',
         stdio: ['ignore', 'pipe', 'pipe'],
     });
 
@@ -207,11 +245,12 @@ function runJob(job) {
 
     const finish = (exitCode, note) => {
         running.delete(job.id);
+        const stopped = cancelled.delete(job.id);
         activeJobsSeen = Math.max(0, activeJobsSeen - 1);
 
         const text = note ? `${output}\n${note}`.slice(-logLimit) : output;
-        log(`job ${job.id.slice(0, 8)}  exit=${exitCode} ${Date.now() - startedAt}ms`);
-        sendSignal({ type: 'result', id: job.id, exitCode, output: text });
+        log(`job ${job.id.slice(0, 8)}  exit=${exitCode} ${Date.now() - startedAt}ms${stopped ? ' cancelled' : ''}`);
+        sendSignal({ type: 'result', id: job.id, exitCode, cancelled: stopped, output: text });
     };
 
     child.on('error', (error) => {
@@ -353,7 +392,7 @@ function shutdown() {
     }
 
     for (const child of running.values()) {
-        child.kill('SIGTERM');
+        killTree(child);
     }
 
     if (controlSocket) {

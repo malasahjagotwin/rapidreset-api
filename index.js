@@ -10,6 +10,7 @@ const methodsFile = path.join(__dirname, 'method.json');
 const maxAttackTime = 300;
 const maxQueuedJobs = 32;
 const jobTimeoutMs = 60_000;
+const cancelTimeoutMs = 10_000;
 const color = supportsColor();
 let isShuttingDown = false;
 
@@ -290,7 +291,7 @@ function failJob(job, message) {
     log(paint.red('job'), `${paint.dim(job.id.slice(0, 8))} failed  ${paint.red(message)}`);
 }
 
-function finishJob(job, exitCode, output) {
+function finishJob(job, exitCode, output, cancelled = false) {
     if (job.timer) {
         clearTimeout(job.timer);
         job.timer = null;
@@ -300,7 +301,7 @@ function finishJob(job, exitCode, output) {
     }
 
     job.done = true;
-    job.status = exitCode === 0 ? 'done' : 'failed';
+    job.status = cancelled ? 'cancelled' : exitCode === 0 ? 'done' : 'failed';
     job.exitCode = exitCode;
     job.output = typeof output === 'string' ? output.slice(-4000) : '';
     job.finishedAt = Date.now();
@@ -312,10 +313,47 @@ function finishJob(job, exitCode, output) {
 
     jobs.delete(job.id);
     const elapsed = `${((job.finishedAt - job.queuedAt) / 1000).toFixed(1)}s`;
-    const tag = job.status === 'done' ? paint.green('job') : paint.red('job');
-    const verdict = job.status === 'done' ? paint.green('done') : paint.red('failed');
+    const tag = cancelled ? paint.yellow('job') : job.status === 'done' ? paint.green('job') : paint.red('job');
+    const verdict = cancelled ? paint.yellow('stopped') : job.status === 'done' ? paint.green('done') : paint.red('failed');
     log(tag, `${paint.dim(job.id.slice(0, 8))} ${verdict}  ${paint.dim(`exit=${exitCode} ${elapsed}`)}`);
     dispatch();
+}
+
+// Job yang dihentikan: worker dikabari, slot baru dilepas setelah worker
+// membalas lewat finishJob. Kalau worker diam, cancelTimeoutMs memaksa lepas.
+function cancelJob(job) {
+    if (job.done) {
+        return 'already-finished';
+    }
+
+    if (!job.workerId) {
+        const index = pending.indexOf(job);
+        if (index !== -1) {
+            pending.splice(index, 1);
+        }
+        job.done = true;
+        job.status = 'cancelled';
+        job.finishedAt = Date.now();
+        jobs.delete(job.id);
+        log(paint.yellow('job'), `${paint.dim(job.id.slice(0, 8))} ${paint.yellow('stopped')}  ${paint.dim('removed from queue')}`);
+        dispatch();
+        return 'stopped';
+    }
+
+    const target = workers.get(job.workerId) || waiters.get(job.workerId);
+    if (!target) {
+        failJob(job, 'Worker gone before the stop request');
+        return 'stopped';
+    }
+
+    job.cancelling = true;
+    if (job.timer) {
+        clearTimeout(job.timer);
+    }
+    job.timer = setTimeout(() => finishJob(job, null, '', true), cancelTimeoutMs);
+    target.send({ type: 'cancel', id: job.id });
+    log(paint.yellow('job'), `${paint.dim(job.id.slice(0, 8))} ${paint.yellow('stopping')}  ${paint.dim(`-> ${job.workerId}`)}`);
+    return 'stopping';
 }
 
 function publicWorker(worker) {
@@ -448,7 +486,12 @@ function handleWorkerMessage(worker, message) {
         if (!job || job.workerId !== worker.id) {
             return;
         }
-        finishJob(job, Number.isInteger(message.exitCode) ? message.exitCode : 1, message.output);
+        finishJob(
+            job,
+            Number.isInteger(message.exitCode) ? message.exitCode : 1,
+            message.output,
+            Boolean(message.cancelled),
+        );
         return;
     }
 }
@@ -535,12 +578,28 @@ function handleJobStatus(response, id) {
 
     sendJson(response, 200, {
         id: job.id,
-        status: job.workerId ? 'running' : 'queued',
+        status: job.cancelling ? 'stopping' : job.workerId ? 'running' : 'queued',
         method: job.name,
         host: job.target,
         itme: job.time,
         workerId: job.workerId,
         queuedAt: job.queuedAt,
+    });
+}
+
+function handleStop(response, id) {
+    const job = jobs.get(id);
+    if (!job) {
+        sendJson(response, 404, { error: 'Job not found or already finished' });
+        return;
+    }
+
+    const outcome = cancelJob(job);
+    sendJson(response, 202, {
+        ok: true,
+        id: job.id,
+        status: outcome === 'stopping' ? 'stopping' : 'cancelled',
+        outcome,
     });
 }
 
@@ -637,6 +696,15 @@ function route(request, response) {
             return undefined;
         }
         handleJobStatus(response, pathname.slice('/api/attack/'.length));
+        return undefined;
+    }
+
+    if (pathname.startsWith('/api/stop/')) {
+        if (request.method !== 'POST') {
+            sendJson(response, 405, { error: 'Method not allowed' }, { allow: 'POST' });
+            return undefined;
+        }
+        handleStop(response, pathname.slice('/api/stop/'.length));
         return undefined;
     }
 
@@ -778,6 +846,10 @@ function renderDocs(request) {
   "time": 30,
   "statusUrl": "/api/attack/4b7d1c2e-..."
 }</pre>
+
+  <h2>Stop</h2>
+  <pre>POST ${escapeHtml(origin)}/api/stop/&lt;id&gt;</pre>
+  <p class="muted">Job yang masih antre atau berjalan dihentikan. Worker menerima perintah cancel dan membunuh prosesnya; slot baru dilepas setelah worker membalas.</p>
 
   <h2>Error</h2>
   <table>
