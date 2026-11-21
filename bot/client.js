@@ -4,7 +4,7 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 
-const serverUrl = new URL(process.env.ORCHESTRATOR || 'http://127.0.0.1:3295');
+const serverUrl = new URL(process.env.ORCHESTRATOR || 'http://127.0.0.1:9215');
 const transport = serverUrl.protocol === 'https:' ? https : http;
 const defaultPort = serverUrl.protocol === 'https:' ? 443 : 80;
 const token = process.env.CLIENT_TOKEN || '';

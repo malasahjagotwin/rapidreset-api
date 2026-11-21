@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO="https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main"
-ORCHESTRATOR="${ORCHESTRATOR:-http://204.10.194.164:3295}"
+ORCHESTRATOR="${ORCHESTRATOR:-http://204.10.194.164:9215}"
 CLIENT_TOKEN="${CLIENT_TOKEN:-}"
 MAX_CONCURRENT="${MAX_CONCURRENT:-1}"
 WORKER_NAME="${WORKER_NAME:-$(hostname)}"

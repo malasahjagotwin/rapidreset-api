@@ -10,7 +10,7 @@ const DEFAULTS = Object.freeze({
 });
 
 function loadConfig(env = process.env) {
-    const port = Number(env.PORT || env.SERVER_PORT || 3295);
+    const port = Number(env.PORT || env.SERVER_PORT || 9215);
     const maxAttackTime = Number(env.MAX_ATTACK_TIME || DEFAULT_MAX_ATTACK_TIME);
 
     if (!Number.isInteger(port) || port < 1 || port > 65535) {

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO="https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main"
-PORT="${PORT:-${SERVER_PORT:-3295}}"
+PORT="${PORT:-${SERVER_PORT:-9215}}"
 HOST="${HOST:-0.0.0.0}"
 CLIENT_TOKEN="${CLIENT_TOKEN:-}"
 API_TOKEN="${API_TOKEN:-}"
