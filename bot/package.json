@@ -2,6 +2,7 @@
   "name": "bot",
   "private": true,
   "dependencies": {
-    "hpack": "^1.0.0"
+    "hpack": "^1.0.0",
+    "puppeteer-real-browser": "^1.4.4"
   }
 }
